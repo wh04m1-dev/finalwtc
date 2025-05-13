@@ -1,61 +1,102 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+-- Users Table (No change needed)
+CREATE TABLE Users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    email VARCHAR(255) UNIQUE,
+    password_hash VARCHAR(255),
+    phone_number VARCHAR(15),
+    role VARCHAR(20) DEFAULT 'Customer', -- 'Customer' or 'Organizer'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+-- Categories Table (No change needed)
+CREATE TABLE Categories (
+    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(255) UNIQUE,
+    category_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
-## About Laravel
+-- Events Table (No change needed)
+CREATE TABLE Events (
+    event_id INT PRIMARY KEY AUTO_INCREMENT,
+    organizer_id INT,
+    event_name VARCHAR(255),
+    event_description TEXT,
+    event_date DATETIME,
+    event_location VARCHAR(255),
+    category_id INT, -- Foreign Key to Categories
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (organizer_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE SET NULL
+);
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+-- Ticket Types Table (No change needed)
+CREATE TABLE Ticket_Types (
+    ticket_type_id INT PRIMARY KEY AUTO_INCREMENT,
+    event_id INT,
+    ticket_name VARCHAR(50),
+    price DECIMAL(10, 2),
+    quantity_available INT,
+    discount DECIMAL(5, 2) DEFAULT 0.00, -- Discount in percentage
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE CASCADE
+);
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+-- Updated Orders Table with new purchase flow (No change needed)
+CREATE TABLE Orders (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT,
+    order_status VARCHAR(20) DEFAULT 'Cart', -- Cart, Confirmed, Paid, Cancelled
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10, 2),
+    payment_status VARCHAR(20) DEFAULT 'Pending', -- Pending, Paid, Failed
+    purchased_at TIMESTAMP NULL, -- When the purchase is confirmed
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+-- Order Details Table with QR Code
+CREATE TABLE Order_Details (
+    order_detail_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT,
+    ticket_type_id INT,
+    quantity INT,
+    price_at_purchase DECIMAL(10, 2),
+    qr_code VARCHAR(255) DEFAULT NULL, -- Field to store the QR code (link or code string)
+    is_scanned BOOLEAN DEFAULT FALSE, -- To track if the QR code has been scanned
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (ticket_type_id) REFERENCES Ticket_Types(ticket_type_id) ON DELETE CASCADE
+);
 
-## Learning Laravel
+-- Discounts Table (No change needed)
+CREATE TABLE Discounts (
+    discount_id INT PRIMARY KEY AUTO_INCREMENT,
+    event_id INT,
+    discount_code VARCHAR(50),
+    discount_percentage DECIMAL(5, 2),
+    start_date DATE,
+    end_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE CASCADE
+);
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+-- Payments Table with payment status and handling (No change needed)
+CREATE TABLE Payments (
+    payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT,
+    payment_method VARCHAR(50), -- E.g., Credit Card, PayPal
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payment_amount DECIMAL(10, 2),
+    payment_status VARCHAR(20) DEFAULT 'Pending', -- Pending, Successful, Failed
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE
+);
