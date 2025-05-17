@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Ticket extends Model
 {
     protected $fillable = [
-        'order_detail_id',
+        'order_id',
         'ticket_code',
         'ticket_type_id',
         'user_id',
@@ -16,9 +16,9 @@ class Ticket extends Model
     ];
 
     // Relationship to OrderDetail
-    public function orderDetail()
+    public function order()
     {
-        return $this->belongsTo(OrderDetail::class);
+        return $this->belongsTo(Order::class);
     }
 
     // Relationship to TicketType
