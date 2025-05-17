@@ -13,17 +13,36 @@ class EventController extends Controller
     // GET /api/events
     public function index()
     {
-        $events = Event::with('category')->latest()->get();
+        $events = Event::with(['category', 'tickets'])->latest()->get();
 
-        // Add full URL for image
-        $events->transform(function ($event) {
-            $event->image = asset('storage/' . $event->image);
-            return $event;
+        $transformed = $events->map(function ($event) {
+            return [
+                'id' => (string) $event->id,
+                'title' => $event->event_name,
+                'date' => date('F j, Y', strtotime($event->event_date)),
+                'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
+                'location' => $event->event_location,
+                'image' => asset('storage/' . $event->image),
+                'organizer' => $event->organizer ?? 'Unknown Organizer',
+                'description' => $event->event_description,
+                'tickets' => $event->tickets->map(function ($ticket) {
+                    return [
+                        'type' => $ticket->type,
+                        'name' => $ticket->name,
+                        'price' => (float) $ticket->price,
+                        'description' => $ticket->description,
+                        'discount' => $ticket->discount_percentage ? [
+                            'percentage' => (int) $ticket->discount_percentage,
+                            'originalPrice' => (float) $ticket->original_price
+                        ] : null,
+                    ];
+                }),
+                'category' => $event->category->name ?? 'Uncategorized',
+            ];
         });
 
-        return response()->json($events);
+        return response()->json($transformed);
     }
-
 
     // POST /api/events
     public function store(Request $request)
@@ -37,16 +56,15 @@ class EventController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'event_location' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
+            'organizer' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Handle image upload
         $imagePath = $request->file('image')->store('events', 'public');
 
-        // Save raw path to DB
         $event = Event::create([
             'event_name' => $request->event_name,
             'image' => $imagePath,
@@ -56,9 +74,9 @@ class EventController extends Controller
             'end_time' => $request->end_time,
             'event_location' => $request->event_location,
             'category_id' => $request->category_id,
+            'organizer' => $request->organizer,
         ]);
 
-        // Only modify image path in the response
         $event->image = asset('storage/' . $event->image);
 
         return response()->json($event, 201);
@@ -67,13 +85,36 @@ class EventController extends Controller
     // GET /api/events/{id}
     public function show($id)
     {
-        $event = Event::with('category')->findOrFail($id);
-        $event->image = asset('storage/' . $event->image);
+        $event = Event::with(['category', 'tickets'])->findOrFail($id);
 
-        return response()->json($event);
+        $data = [
+            'id' => (string) $event->id,
+            'title' => $event->event_name,
+            'date' => date('F j, Y', strtotime($event->event_date)),
+            'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
+            'location' => $event->event_location,
+            'image' => asset('storage/' . $event->image),
+            'organizer' => $event->organizer ?? 'Unknown Organizer',
+            'description' => $event->event_description,
+            'tickets' => $event->tickets->map(function ($ticket) {
+                return [
+                    'type' => $ticket->type,
+                    'name' => $ticket->name,
+                    'price' => (float) $ticket->price,
+                    'description' => $ticket->description,
+                    'discount' => $ticket->discount_percentage ? [
+                        'percentage' => (int) $ticket->discount_percentage,
+                        'originalPrice' => (float) $ticket->original_price
+                    ] : null,
+                ];
+            }),
+            'category' => $event->category->name ?? 'Uncategorized',
+        ];
+
+        return response()->json($data);
     }
 
-    // PUT/PATCH /api/events/{id}
+    // PUT /api/events/{id}
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
@@ -87,15 +128,14 @@ class EventController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'event_location' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
+            'organizer' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Handle optional image update
         if ($request->hasFile('image')) {
-            // Delete old image if exists
             if ($event->image && Storage::disk('public')->exists($event->image)) {
                 Storage::disk('public')->delete($event->image);
             }
@@ -111,10 +151,10 @@ class EventController extends Controller
             'end_time' => $request->end_time,
             'event_location' => $request->event_location,
             'category_id' => $request->category_id,
+            'organizer' => $request->organizer,
             'image' => $event->image,
         ]);
 
-        // Add full image URL
         $event->image = Storage::url($event->image);
 
         return response()->json($event);
@@ -125,7 +165,6 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
 
-        // Delete image file
         if ($event->image && Storage::disk('public')->exists($event->image)) {
             Storage::disk('public')->delete($event->image);
         }
@@ -135,39 +174,3 @@ class EventController extends Controller
         return response()->json(['message' => 'Event deleted successfully']);
     }
 }
-
-// {
-//     id: "1",
-//     title: "Summer Music Festival",
-//     date: "June 15, 2025",
-//     time: "4:00 PM - 11:00 PM",
-//     location: "Central Park, New York",
-//     image: "/event1.jpg",
-//     organizer: "Music Events Inc.",
-//     description:
-//       "Join us for the biggest summer music festival featuring top artists from around the world. Enjoy a day of amazing performances, food, and fun activities for all ages.",
-//     tickets: [
-//       {
-//         type: "vip",
-//         name: "VIP2",
-//         price: 129.99,
-//         description: "Front row access, exclusive lounge, complimentary drinks",
-//         discount: {
-//           percentage: 13,
-//           originalPrice: 149.99,
-//         },
-//       },
-//       {
-//         type: "premium",
-//         name: "Premium",
-//         price: 79.99,
-//         description: "Priority seating, fast-track entry",
-//         discount: {
-//           percentage: 20,
-//           originalPrice: 99.99,
-//         },
-//       },
-//       { type: "standard", name: "Standard", price: 49.99, description: "General admission" },
-//     ],
-//     category: "Festival",
-//   },

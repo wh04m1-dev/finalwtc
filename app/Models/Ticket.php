@@ -27,6 +27,11 @@ class Ticket extends Model
         return $this->belongsTo(TicketType::class);
     }
 
+    public function event()
+    {
+        return $this->belongsTo(Event::class);
+    }
+
     // Relationship to User
     public function user()
     {
