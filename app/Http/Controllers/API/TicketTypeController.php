@@ -15,17 +15,22 @@ class TicketTypeController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'event_id' => 'required|exists:events,id',
-            'ticket_name' => 'required|string|max:50',
-            'price' => 'required|numeric|min:0',
-            'quantity_available' => 'required|integer|min:1',
-            'discount' => 'nullable|numeric|min:0|max:100',
+        $validated = $request->validate([
+            'tickets'                       => 'required|array|min:1',
+            'tickets.*.event_id'            => 'required|exists:events,id',
+            'tickets.*.ticket_name'         => 'required|string|max:50',
+            'tickets.*.price'               => 'required|numeric|min:0',
+            'tickets.*.quantity_available'  => 'required|integer|min:1',
+            'tickets.*.discount'            => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $ticketType = TicketType::create($request->all());
+        $createdTickets = [];
 
-        return response()->json($ticketType, 201);
+        foreach ($validated['tickets'] as $ticketData) {
+            $createdTickets[] = TicketType::create($ticketData);
+        }
+
+        return response()->json($createdTickets, 201);
     }
 
     public function show($id)

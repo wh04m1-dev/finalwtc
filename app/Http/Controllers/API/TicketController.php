@@ -46,3 +46,40 @@ class TicketController extends Controller
         return response()->json(['message' => 'Ticket successfully scanned.']);
     }
 }
+
+
+// {
+//     id: "1",
+//     title: "Summer Music Festival",
+//     date: "June 15, 2025",
+//     time: "4:00 PM - 11:00 PM",
+//     location: "Central Park, New York",
+//     image: "/event1.jpg",
+//     organizer: "Music Events Inc.",
+//     description:
+//       "Join us for the biggest summer music festival featuring top artists from around the world. Enjoy a day of amazing performances, food, and fun activities for all ages.",
+//     tickets: [
+//       {
+//         type: "vip",
+//         name: "VIP2",
+//         price: 129.99,
+//         description: "Front row access, exclusive lounge, complimentary drinks",
+//         discount: {
+//           percentage: 13,
+//           originalPrice: 149.99,
+//         },
+//       },
+//       {
+//         type: "premium",
+//         name: "Premium",
+//         price: 79.99,
+//         description: "Priority seating, fast-track entry",
+//         discount: {
+//           percentage: 20,
+//           originalPrice: 99.99,
+//         },
+//       },
+//       { type: "standard", name: "Standard", price: 49.99, description: "General admission" },
+//     ],
+//     category: "Festival",
+//   },
