@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Link to the user who owns the ticket
             $table->timestamp('scanned_at')->nullable(); // When the ticket was scanned at the event
             $table->enum('status', ['active', 'used', 'expired'])->default('active'); // Ticket status
+            $table->foreignId('event_id')->constrained('events')->onDelete('cascade');
             $table->timestamps();
         });
     }
