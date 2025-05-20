@@ -40,6 +40,7 @@ return new class extends Migration
                 ->constrained('events')
                 ->onDelete('cascade');
 
+            $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
             // Laravel timestamps: created_at and updated_at
             $table->timestamps();
         });

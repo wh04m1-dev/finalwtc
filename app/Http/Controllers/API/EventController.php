@@ -33,7 +33,7 @@ class EventController extends Controller
                         'quantity_available' => $ticket->quantity_available,
                     ];
                 }),
-                'category' => $event->category->name ?? 'Uncategorized',
+                'category' => $event->category->category_name ?? 'Uncategorized',
             ];
         });
 
