@@ -10,5 +10,9 @@ class Category extends Model
         'category_name',
         'category_description',
     ];
-
+    
+    public function events()
+    {
+        return $this->hasMany(Event::class);
+    }
 }
