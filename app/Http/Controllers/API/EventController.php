@@ -34,7 +34,7 @@ class EventController extends Controller
                         'discount' => $ticket->discount_percentage ? [
                             'percentage' => (int) $ticket->discount_percentage,
                             'originalPrice' => (float) $ticket->original_price
-                        ] : null,
+                        ] : ,
                     ];
                 }),
                 'category' => $event->category->name ?? 'Uncategorized',
