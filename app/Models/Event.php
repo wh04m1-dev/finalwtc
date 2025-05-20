@@ -24,6 +24,11 @@ class Event extends Model
 
     public function tickets()
     {
-        return $this->hasMany(Ticket::class);
+        return $this->hasMany(Ticket::class, 'event_id');
+    }
+
+    public function ticketTypes()
+    {
+        return $this->hasMany(TicketType::class, 'event_id');
     }
 }

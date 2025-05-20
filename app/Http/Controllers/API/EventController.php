@@ -13,7 +13,7 @@ class EventController extends Controller
     // GET /api/events
     public function index()
     {
-        $events = Event::with(['category', 'tickets'])->latest()->get();
+        $events = Event::with(['category', 'ticketTypes'])->latest()->get();
 
         $transformed = $events->map(function ($event) {
             return [
@@ -25,16 +25,12 @@ class EventController extends Controller
                 'image' => asset('storage/' . $event->image),
                 'organizer' => $event->organizer ?? 'Unknown Organizer',
                 'description' => $event->event_description,
-                'tickets' => $event->tickets->map(function ($ticket) {
+                'tickets' => $event->ticketTypes->map(function ($ticket) {
                     return [
-                        'type' => $ticket->type,
-                        'name' => $ticket->name,
+                        'name' => $ticket->ticket_name,
                         'price' => (float) $ticket->price,
-                        'description' => $ticket->description,
-                        'discount' => $ticket->discount_percentage ? [
-                            'percentage' => (int) $ticket->discount_percentage,
-                            'originalPrice' => (float) $ticket->original_price
-                        ] : ,
+                        'discount' => (float) $ticket->discount,
+                        'quantity_available' => $ticket->quantity_available,
                     ];
                 }),
                 'category' => $event->category->name ?? 'Uncategorized',
