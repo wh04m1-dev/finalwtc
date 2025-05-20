@@ -15,6 +15,7 @@ class Event extends Model
         'end_time',
         'event_location',
         'category_id',
+        'user_id',
     ];
 
     public function category()
@@ -31,4 +32,10 @@ class Event extends Model
     {
         return $this->hasMany(TicketType::class, 'event_id');
     }
+
+    public function organizer()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
 }

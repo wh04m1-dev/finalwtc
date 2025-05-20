@@ -6,6 +6,7 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class EventController extends Controller
@@ -13,7 +14,7 @@ class EventController extends Controller
     // GET /api/events
     public function index()
     {
-        $events = Event::with(['category', 'ticketTypes'])->latest()->get();
+        $events = Event::with(['category', 'ticketTypes', 'organizer'])->latest()->get();
 
         $transformed = $events->map(function ($event) {
             return [
@@ -23,7 +24,7 @@ class EventController extends Controller
                 'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
                 'location' => $event->event_location,
                 'image' => asset('storage/' . $event->image),
-                'organizer' => $event->organizer ?? 'Unknown Organizer',
+                'organizer' => $event->organizer->name ?? 'Unknown Organizer',
                 'description' => $event->event_description,
                 'tickets' => $event->ticketTypes->map(function ($ticket) {
                     return [
@@ -61,6 +62,9 @@ class EventController extends Controller
 
         $imagePath = $request->file('image')->store('events', 'public');
 
+        $user = Auth::user();
+        $organizerName = $user->name ?? 'Unknown Organizer';
+
         $event = Event::create([
             'event_name' => $request->event_name,
             'image' => $imagePath,
@@ -69,8 +73,8 @@ class EventController extends Controller
             'start_time' => $request->start_time,
             'end_time' => $request->end_time,
             'event_location' => $request->event_location,
-            'category_id' => $request->category_id,
-            'organizer' => $request->organizer,
+            'organizer' => $organizerName,
+            'user_id' => $user->id,
         ]);
 
         $event->image = asset('storage/' . $event->image);
@@ -81,7 +85,7 @@ class EventController extends Controller
     // GET /api/events/{id}
     public function show($id)
     {
-        $event = Event::with(['category', 'tickets'])->findOrFail($id);
+        $event = Event::with(['category', 'tickets', 'organizer'])->findOrFail($id);
 
         $data = [
             'id' => (string) $event->id,
@@ -90,7 +94,7 @@ class EventController extends Controller
             'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
             'location' => $event->event_location,
             'image' => asset('storage/' . $event->image),
-            'organizer' => $event->organizer ?? 'Unknown Organizer',
+            'organizer' => $event->organizer->name ?? 'Unknown Organizer',
             'description' => $event->event_description,
             'tickets' => $event->tickets->map(function ($ticket) {
                 return [

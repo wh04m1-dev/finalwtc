@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->time('end_time');           // Only the end time
             $table->string('event_location');
             $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
