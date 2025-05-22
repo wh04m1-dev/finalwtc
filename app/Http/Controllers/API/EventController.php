@@ -50,6 +50,7 @@ class EventController extends Controller
                 'description' => $event->event_description,
                 'tickets' => $event->ticketTypes->map(function ($ticket) {
                     return [
+                        'id' => $ticket->id,
                         'name' => $ticket->ticket_name,
                         'price' => (float) $ticket->price,
                         'discount' => (float) $ticket->discount,
