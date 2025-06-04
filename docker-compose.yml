@@ -1,16 +1,27 @@
+version: '3.8'
+
 services:
     app:
-        build: .
+        build:
+            context: .
+            dockerfile: Dockerfile
         ports:
-            - "8001:80"
+            - "8000:80"
         volumes:
             - .:/var/www/html
+        environment:
+            - APP_ENV=production
+            - APP_KEY=base64:yDbWdhS3MXNWVxhi7Ob3Fg8ZW3qF3BhoHYFXudi9VN4=
+            - APP_DEBUG=false
+            - DB_CONNECTION=mysql
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_DATABASE=finalwtc
+            - DB_USERNAME=root
+            - DB_PASSWORD=root
         depends_on:
             db:
                 condition: service_healthy
-        environment:
-            - DB_HOST=db
-            - DB_PORT=3306
 
     db:
         image: mysql:8.0
@@ -21,16 +32,7 @@ services:
         volumes:
             - mysql_data:/var/lib/mysql
         healthcheck:
-            test:
-                [
-                    "CMD",
-                    "mysqladmin",
-                    "ping",
-                    "-h",
-                    "localhost",
-                    "-uroot",
-                    "-proot",
-                ]
+            test: [ "CMD", "mysqladmin", "ping", "-uroot", "-proot" ]
             interval: 5s
             timeout: 10s
             retries: 5
