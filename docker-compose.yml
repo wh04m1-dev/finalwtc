@@ -1,52 +1,73 @@
 version: '3.8'
 
 services:
-    app:
+    api:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: docker/php/Dockerfile
+        container_name: api
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        environment:
+            - REDIS_HOST=redis
+        networks:
+            - api-network
+        healthcheck:
+            test: [ "CMD", "php", "artisan", "queue:work", "--once" ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
+    webserver:
+        image: nginx:1.25-alpine
+        container_name: webserver
         ports:
             - "8000:80"
         volumes:
-            - .:/var/www/html
-        environment:
-            - APP_ENV=production
-            - APP_KEY=base64:yDbWdhS3MXNWVxhi7Ob3Fg8ZW3qF3BhoHYFXudi9VN4=
-            - APP_DEBUG=false
-            - DB_CONNECTION=mysql
-            - DB_HOST=db
-            - DB_PORT=3306
-            - DB_DATABASE=finalwtc
-            - DB_USERNAME=root
-            - DB_PASSWORD=root
+            - ./:/var/www
+            - ./docker/nginx:/etc/nginx/conf.d
+        networks:
+            - api-network
         depends_on:
-            db:
-                condition: service_healthy
+            - api
 
     db:
-        image: mysql:8.0
-        command: --default-authentication-plugin=mysql_native_password
+        image: mysql:8.0.33
+        container_name: db
         environment:
-            MYSQL_ROOT_PASSWORD: root
-            MYSQL_DATABASE: finalwtc
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
         volumes:
-            - mysql_data:/var/lib/mysql
-        healthcheck:
-            test: [ "CMD", "mysqladmin", "ping", "-uroot", "-proot" ]
-            interval: 5s
-            timeout: 10s
-            retries: 5
+            - dbdata:/var/lib/mysql
+            - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+        networks:
+            - api-network
+        command: --default-authentication-plugin=mysql_native_password
 
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        restart: unless-stopped
         ports:
-            - "8082:80"
-        depends_on:
-            - db
+            - "8081:80"
         environment:
             PMA_HOST: db
-            PMA_USER: root
-            PMA_PASSWORD: root
+            PMA_PORT: 3306
+            PMA_ARBITRARY: 0
+            UPLOAD_LIMIT: 128M
+        networks:
+            - api-network
+        depends_on:
+            - db
+
+networks:
+    api-network:
+        driver: bridge
 
 volumes:
-    mysql_data:
+    dbdata:
+        driver: local
