@@ -134,19 +134,25 @@ class EventController extends Controller
 
         return response()->json($data);
     }
+
     // PUT /api/events/{id}
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
 
+        // Check if the authenticated user is the owner of the event
+        if (Auth::id() !== $event->user_id) {
+            return response()->json(['error' => 'Unauthorized. You can only update your own events.'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
-            'event_name' => 'required|string|max:255',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'event_name' => 'sometimes|string|max:255',
+            'image' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
             'event_description' => 'nullable|string',
-            'event_date' => 'required|date',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'event_location' => 'required|string|max:255',
+            'event_date' => 'sometimes|date',
+            'start_time' => 'sometimes|date_format:H:i',
+            'end_time' => 'sometimes|date_format:H:i|after:start_time',
+            'event_location' => 'sometimes|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'organizer' => 'nullable|string|max:255',
         ]);
@@ -155,27 +161,37 @@ class EventController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $data = $request->only([
+            'event_name',
+            'event_description',
+            'event_date',
+            'start_time',
+            'end_time',
+            'event_location',
+            'category_id'
+        ]);
+
+        // Handle image update if provided
         if ($request->hasFile('image')) {
+            // Delete old image if it exists
             if ($event->image && Storage::disk('public')->exists($event->image)) {
                 Storage::disk('public')->delete($event->image);
             }
 
-            $event->image = $request->file('image')->store('events', 'public');
+            $imagePath = $request->file('image')->store('events', 'public');
+            $data['image'] = $imagePath;
         }
 
-        $event->update([
-            'event_name' => $request->event_name,
-            'event_description' => $request->event_description,
-            'event_date' => $request->event_date,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'event_location' => $request->event_location,
-            'category_id' => $request->category_id,
-            'organizer' => $request->organizer,
-            'image' => $event->image,
-        ]);
+        // Update organizer name if provided
+        if ($request->has('organizer')) {
+            $data['organizer'] = $request->organizer;
+        }
 
-        $event->image = Storage::url($event->image);
+        $event->update($data);
+
+        // Refresh the event data to include relationships
+        $event = Event::with(['category', 'ticketTypes', 'organizer'])->find($id);
+        $event->image = asset('storage/' . $event->image);
 
         return response()->json($event);
     }

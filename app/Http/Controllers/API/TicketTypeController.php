@@ -42,15 +42,18 @@ class TicketTypeController extends Controller
     {
         $ticketType = TicketType::findOrFail($id);
 
-        $request->validate([
-            'event_id' => 'required|exists:events,id',
-            'ticket_name' => 'required|string|max:50',
-            'price' => 'required|numeric|min:0',
-            'quantity_available' => 'required|integer|min:1',
+        $validated = $request->validate([
+            'ticket_name' => 'sometimes|required|string|max:50',
+            'price' => 'sometimes|required|numeric|min:0',
+            'quantity_available' => 'sometimes|required|integer|min:1',
             'discount' => 'nullable|numeric|min:0|max:100',
+            'event_id' => 'sometimes|required|exists:events,id',
         ]);
 
-        $ticketType->update($request->all());
+        $ticketType->update($validated);
+
+        // Refresh the model to get any relational data if needed
+        $ticketType = TicketType::with('event')->find($id);
 
         return response()->json($ticketType);
     }

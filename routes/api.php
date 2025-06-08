@@ -6,7 +6,6 @@ use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\EventController;
 use App\Http\Controllers\API\TicketTypeController;
 use App\Http\Controllers\API\OrderController;
-use App\Http\Controllers\API\OrderDetailController;
 use App\Http\Controllers\API\DiscountController;
 use App\Http\Controllers\API\PaymentController;
 
