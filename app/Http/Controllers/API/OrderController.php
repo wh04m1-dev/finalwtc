@@ -10,11 +10,40 @@ use Illuminate\Support\Facades\Validator;
 class OrderController extends Controller
 {
     // Get all orders
+    // public function index()
+    // {
+    //     $orders = Order::with(['user', 'ticketType'])->get();
+    //     return response()->json($orders, 200);
+    // }
     public function index()
     {
-        $orders = Order::with(['user', 'ticketType'])->get();
-        return response()->json($orders, 200);
+        $orders = Order::with(['ticketType.event'])->get();
+    
+        $formattedOrders = $orders->map(function ($order) {
+            $event = $order->ticketType->event;
+    
+            return [
+                'order_id'       => $order->id,
+                'order_date'     => $order->order_date ?? $order->created_at->format('Y-m-d H:i:s'),
+                'order_status'   => $order->order_status,
+                'paymentStatus'  => $order->payment_status,
+                'quantity'       => $order->quantity,
+                'unitPrice'      => number_format($order->price_at_purchase, 2),
+                'total'          => number_format($order->total_amount, 2),
+                'ticketType'     => $order->ticketType->ticket_name ?? null,
+                'eventTitle'     => $event->event_name ?? null,
+                'eventDate'      => $event ? date('F j, Y', strtotime($event->event_date)) : null,
+                'eventTime'      => $event ? $event->start_time . ' - ' . $event->end_time : null,
+                'eventLocation'  => $event->event_location ?? null,
+                'eventImage'     => $event ? url('storage/' . $event->image) : null,
+                'qr_code'        => $order->qr_code,
+                'is_scanned'     => (bool) $order->is_scanned,
+            ];
+        });
+    
+        return response()->json($formattedOrders, 200);
     }
+
 
     // Store a new order
     public function store(Request $request)
