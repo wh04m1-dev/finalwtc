@@ -57,4 +57,30 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logged out']);
     }
+
+    public function changeUserRole(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'new_role' => 'required|in:admin,user,organizer'
+        ]);
+
+        if ($request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $user = User::find($request->user_id);
+
+        if ($request->user()->id == $user->id) {
+            return response()->json(['message' => 'Cannot change your own role'], 400);
+        }
+
+        $user->role = $request->new_role;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Role updated successfully',
+            'user' => $user->only(['id', 'name', 'email', 'role'])
+        ]);
+    }
 }
