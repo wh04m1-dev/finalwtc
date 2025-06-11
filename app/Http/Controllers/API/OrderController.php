@@ -9,19 +9,13 @@ use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
 {
-    // Get all orders
-    // public function index()
-    // {
-    //     $orders = Order::with(['user', 'ticketType'])->get();
-    //     return response()->json($orders, 200);
-    // }
     public function index()
     {
         $orders = Order::with(['ticketType.event'])->get();
-    
+
         $formattedOrders = $orders->map(function ($order) {
             $event = $order->ticketType->event;
-    
+
             return [
                 'order_id'       => $order->id,
                 'order_date'     => $order->order_date ?? $order->created_at->format('Y-m-d H:i:s'),
@@ -40,10 +34,9 @@ class OrderController extends Controller
                 'is_scanned'     => (bool) $order->is_scanned,
             ];
         });
-    
+
         return response()->json($formattedOrders, 200);
     }
-
 
     // Store a new order
     public function store(Request $request)
