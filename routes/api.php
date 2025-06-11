@@ -16,15 +16,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Admin-only routes
-    // Route::middleware('role:admin')->group(function () {
-    // Route::get('/admin/dashboard', function () {
-    //     return response()->json(['message' => 'Welcome Admin']);
-    // });
-    //     Route::post('/change-user-role', [AuthController::class, 'changeUserRole'])
-    //         ->middleware('throttle:5,1');
-    // });
-
     Route::post('/change-user-role', [AuthController::class, 'changeUserRole'])
         ->middleware(['auth:sanctum']);
 
