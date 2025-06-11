@@ -45,7 +45,7 @@ class TicketTypeController extends Controller
         $validated = $request->validate([
             'ticket_name' => 'sometimes|required|string|max:50',
             'price' => 'sometimes|required|numeric|min:0',
-            'quantity_available' => 'sometimes|required|integer|min:1',
+            'quantity_available' => 'sometimes|required|integer|min:0',
             'discount' => 'nullable|numeric|min:0|max:100',
             'event_id' => 'sometimes|required|exists:events,id',
         ]);

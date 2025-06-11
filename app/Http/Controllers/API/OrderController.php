@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\TicketType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -38,7 +39,6 @@ class OrderController extends Controller
         return response()->json($formattedOrders, 200);
     }
 
-    // Store a new order
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -58,12 +58,23 @@ class OrderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Check ticket availability
+        $ticketType = TicketType::findOrFail($request->ticket_type_id);
+
+        if ($ticketType->quantity_available < $request->quantity) {
+            return response()->json(['message' => 'Not enough tickets available'], 400);
+        }
+
+        // Create the order
         $order = Order::create($request->all());
+
+        // Update the ticket quantity
+        $ticketType->quantity_available -= $request->quantity;
+        $ticketType->save();
 
         return response()->json($order, 201);
     }
 
-    // Show a single order
     public function show($id)
     {
         $order = Order::with(['user', 'ticketType'])->find($id);
@@ -75,7 +86,6 @@ class OrderController extends Controller
         return response()->json($order, 200);
     }
 
-    // Update an order
     public function update(Request $request, $id)
     {
         $order = Order::find($id);
@@ -99,12 +109,28 @@ class OrderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Handle quantity changes
+        if ($request->has('quantity') && $request->quantity != $order->quantity) {
+            $ticketType = TicketType::findOrFail($order->ticket_type_id);
+
+            // Calculate the difference
+            $quantityDifference = $order->quantity - $request->quantity;
+
+            // Check if we have enough tickets if increasing the order quantity
+            if ($quantityDifference < 0 && $ticketType->quantity_available < abs($quantityDifference)) {
+                return response()->json(['message' => 'Not enough tickets available'], 400);
+            }
+
+            // Update the ticket quantity
+            $ticketType->quantity_available += $quantityDifference;
+            $ticketType->save();
+        }
+
         $order->update($request->all());
 
         return response()->json($order, 200);
     }
 
-    // Delete an order
     public function destroy($id)
     {
         $order = Order::find($id);
@@ -113,12 +139,16 @@ class OrderController extends Controller
             return response()->json(['message' => 'Order not found'], 404);
         }
 
+        // Return the tickets to available quantity
+        $ticketType = TicketType::findOrFail($order->ticket_type_id);
+        $ticketType->quantity_available += $order->quantity;
+        $ticketType->save();
+
         $order->delete();
 
         return response()->json(['message' => 'Order deleted successfully'], 200);
     }
 
-    // Optional: Get orders by user
     public function getByUser($userId)
     {
         $orders = Order::where('user_id', $userId)->with('ticketType')->get();
