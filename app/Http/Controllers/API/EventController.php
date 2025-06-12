@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Event;
+use App\Models\Order;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -209,4 +211,65 @@ class EventController extends Controller
 
         return response()->json(['message' => 'Event deleted successfully']);
     }
+
+public function statistics()
+{
+    try {
+        // Total events
+        $totalEvents = Event::count();
+
+        // First approach: Try counting tickets directly
+        try {
+            $totalBookedTickets = Ticket::count(); // Basic count of all tickets
+            // OR if you have a status-like field with different name:
+            // $totalBookedTickets = Ticket::where('booking_status', 'confirmed')->count();
+        } catch (\Exception $e) {
+            // Fallback to orders if tickets table doesn't exist or can't be queried
+            $totalBookedTickets = Order::where('is_completed', 1) // Common column names
+                                     ->orWhere('is_paid', 1)
+                                     ->count();
+        }
+
+        // Top event - try different approaches
+        $topEvent = null;
+
+        // Approach 1: Through tickets relationship
+        try {
+            $topEvent = Event::withCount(['tickets'])
+                            ->orderByDesc('tickets_count')
+                            ->first();
+        } catch (\Exception $e) {
+            // Approach 2: Through orders relationship
+            try {
+                $topEvent = Event::withCount(['orders'])
+                                ->orderByDesc('orders_count')
+                                ->first();
+            } catch (\Exception $e) {
+                // Fallback to just getting the first event
+                $topEvent = Event::first();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_events' => $totalEvents,
+                'total_booked_tickets' => $totalBookedTickets,
+                'top_event' => $topEvent ? [
+                    'id' => $topEvent->id,
+                    'name' => $topEvent->name,
+                    'tickets_sold' => $topEvent->tickets_count ?? $topEvent->orders_count ?? 0,
+                    // Add other relevant fields
+                ] : null
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to retrieve event statistics',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

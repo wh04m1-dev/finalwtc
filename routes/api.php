@@ -21,6 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/users', [AuthController::class, 'getUsers']);
 
+    Route::get('/events/statistics', [EventController::class, 'statistics']);
+
     Route::post('/discounts/validate', [DiscountController::class, 'validateDiscount']);
 
     Route::apiResource('categories', CategoryController::class);

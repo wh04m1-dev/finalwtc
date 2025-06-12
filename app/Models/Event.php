@@ -37,5 +37,8 @@ class Event extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }
