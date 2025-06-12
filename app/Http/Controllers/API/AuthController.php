@@ -84,16 +84,17 @@ class AuthController extends Controller
         ]);
     }
 
-    public function getUserCount(Request $request)
+    public function getUsers(Request $request)
     {
         if ($request->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $count = User::count();
+        $users = User::all();
 
         return response()->json([
-            'count' => $count,
+            'users' => $users,
+            'count' => $users->count(), // Still include count if needed
             'status' => 'success'
         ]);
     }

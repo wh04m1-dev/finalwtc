@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change-user-role', [AuthController::class, 'changeUserRole'])
         ->middleware(['auth:sanctum']);
 
-    Route::get('/users/count', [AuthController::class, 'getUserCount']);
+    Route::get('/users', [AuthController::class, 'getUsers']);
 
     Route::post('/discounts/validate', [DiscountController::class, 'validateDiscount']);
 
