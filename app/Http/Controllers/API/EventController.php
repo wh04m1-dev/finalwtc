@@ -26,28 +26,13 @@ class EventController extends Controller
             ->toArray();
 
         $transformed = $events->map(function ($event) use ($categoryPopularity) {
-            // Calculate event duration in hours
-            $startTime = strtotime($event->start_time);
-            $endTime = strtotime($event->end_time);
-            $durationHours = ($endTime - $startTime) / 3600;
-
-            // Get total ticket quantity available
-            $totalTickets = $event->ticketTypes->sum('quantity_available');
-
-            // Calculate Fun Index: duration * 10 + category popularity * 5 + tickets * 2 + base score
-            $categoryScore = $categoryPopularity[$event->category_id ?? 0] ?? 0;
-            //$funIndex = ($durationHours * 10) + ($categoryScore * 5) + ($totalTickets * 2) + 10; // Added base score of 10
-
-            // Add description-based score (e.g., +5 if "fun" or "party" appears)
-            $descriptionScore = (stripos($event->event_description, 'fun') !== false || stripos($event->event_description, 'party') !== false) ? 5 : 0;
-
             return [
                 'id' => (string) $event->id,
                 'title' => $event->event_name,
                 'date' => date('F j, Y', strtotime($event->event_date)),
                 'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
                 'location' => $event->event_location,
-                'image' => asset('storage/' . $event->image),
+                'image' => asset('storage/Event/' . basename($event->image)),
                 'organizer' => $event->organizer->name ?? 'Unknown Organizer',
                 'description' => $event->event_description,
                 'tickets' => $event->ticketTypes->map(function ($ticket) {
@@ -60,7 +45,6 @@ class EventController extends Controller
                     ];
                 }),
                 'category' => $event->category ? $event->category->category_name : 'Uncategorized',
-                //'fun_index' => round($funIndex + $descriptionScore, 2),
             ];
         });
 
@@ -86,7 +70,7 @@ class EventController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $imagePath = $request->file('image')->store('events', 'public');
+        $imagePath = $request->file('image')->store('Event', 'public');
 
         $user = Auth::user();
         $organizerName = $user->name ?? 'Unknown Organizer';
@@ -104,7 +88,7 @@ class EventController extends Controller
             'category_id' => $request->category_id ?? null,
         ]);
 
-        $event->image = asset('storage/' . $event->image);
+        $event->image = asset('storage/Event/' . basename($event->image));
 
         return response()->json($event, 201);
     }
@@ -120,7 +104,7 @@ class EventController extends Controller
             'date' => date('F j, Y', strtotime($event->event_date)),
             'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
             'location' => $event->event_location,
-            'image' => asset('storage/' . $event->image),
+            'image' => asset('storage/Event/' . basename($event->image)),
             'organizer' => $event->organizer->name ?? 'Unknown Organizer',
             'description' => $event->event_description,
             'tickets' => $event->ticketTypes->map(function ($ticket) {
@@ -180,7 +164,7 @@ class EventController extends Controller
                 Storage::disk('public')->delete($event->image);
             }
 
-            $imagePath = $request->file('image')->store('events', 'public');
+            $imagePath = $request->file('image')->store('Event', 'public');
             $data['image'] = $imagePath;
         }
 
@@ -193,7 +177,7 @@ class EventController extends Controller
 
         // Refresh the event data to include relationships
         $event = Event::with(['category', 'ticketTypes', 'organizer'])->find($id);
-        $event->image = asset('storage/' . $event->image);
+        $event->image = asset('storage/Event/' . basename($event->image));
 
         return response()->json($event);
     }
