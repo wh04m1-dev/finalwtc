@@ -8,6 +8,7 @@ use App\Http\Controllers\API\TicketTypeController;
 use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\DiscountController;
 use App\Http\Controllers\API\PaymentController;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
