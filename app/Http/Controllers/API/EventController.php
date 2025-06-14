@@ -13,12 +13,10 @@ use Illuminate\Support\Facades\Validator;
 
 class EventController extends Controller
 {
-    // GET /api/events
     public function index()
     {
         $events = Event::with(['category', 'ticketTypes', 'organizer'])->latest()->get();
 
-        // Calculate category popularity
         $categoryPopularity = Event::select('category_id')
             ->groupBy('category_id')
             ->selectRaw('COUNT(*) as event_count')
@@ -51,7 +49,6 @@ class EventController extends Controller
         return response()->json($transformed);
     }
 
-    // POST /api/events
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -93,7 +90,6 @@ class EventController extends Controller
         return response()->json($event, 201);
     }
 
-    // GET /api/events/{id}
     public function show($id)
     {
         $event = Event::with(['category', 'ticketTypes', 'organizer'])->findOrFail($id);
@@ -121,12 +117,10 @@ class EventController extends Controller
         return response()->json($data);
     }
 
-    // PUT /api/events/{id}
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
 
-        // Check if the authenticated user is the owner of the event
         if (Auth::id() !== $event->user_id) {
             return response()->json(['error' => 'Unauthorized. You can only update your own events.'], 403);
         }
