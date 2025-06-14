@@ -13,7 +13,7 @@ class EventSeeder extends Seeder
         DB::table('events')->insert([
             [
                 'event_name' => 'Music Festival 2025',
-                'image' => 'music_festival.jpg',
+                'image' => 'https://www.creative-flyers.com/wp-content/uploads/2022/07/Music-Festival-Poster-Design-1.jpg',
                 'event_description' => 'Enjoy live music from famous artists.',
                 'event_date' => '2025-08-15',
                 'start_time' => '18:00:00',
@@ -26,7 +26,7 @@ class EventSeeder extends Seeder
             ],
             [
                 'event_name' => 'Tech Conference 2025',
-                'image' => 'tech_conference.jpg',
+                'image' => 'https://media.licdn.com/dms/image/v2/D5612AQFM4_zc06f-zA/article-cover_image-shrink_600_2000/article-cover_image-shrink_600_2000/0/1711829905710?e=2147483647&v=beta&t=0WdhMy9xtDGm9BPy7r309CvDkUZHBEEYeAZmPs8YlRk',
                 'event_description' => 'A technology conference with top speakers.',
                 'event_date' => '2025-09-20',
                 'start_time' => '09:00:00',
