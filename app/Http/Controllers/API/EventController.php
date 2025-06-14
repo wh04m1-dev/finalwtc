@@ -30,7 +30,7 @@ class EventController extends Controller
                 'date' => date('F j, Y', strtotime($event->event_date)),
                 'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
                 'location' => $event->event_location,
-                'image' => asset('storage/Event/' . basename($event->image)),
+                'image' => asset('storage/' . $event->image),
                 'organizer' => $event->organizer->name ?? 'Unknown Organizer',
                 'description' => $event->event_description,
                 'tickets' => $event->ticketTypes->map(function ($ticket) {
@@ -85,7 +85,7 @@ class EventController extends Controller
             'category_id' => $request->category_id ?? null,
         ]);
 
-        $event->image = asset('storage/Event/' . basename($event->image));
+        $event->image = asset('storage/' . $event->image);
 
         return response()->json($event, 201);
     }
@@ -100,7 +100,7 @@ class EventController extends Controller
             'date' => date('F j, Y', strtotime($event->event_date)),
             'time' => date('g:i A', strtotime($event->start_time)) . ' - ' . date('g:i A', strtotime($event->end_time)),
             'location' => $event->event_location,
-            'image' => asset('storage/Event/' . basename($event->image)),
+            'image' => asset('storage/' . $event->image),
             'organizer' => $event->organizer->name ?? 'Unknown Organizer',
             'description' => $event->event_description,
             'tickets' => $event->ticketTypes->map(function ($ticket) {
@@ -151,9 +151,7 @@ class EventController extends Controller
             'category_id'
         ]);
 
-        // Handle image update if provided
         if ($request->hasFile('image')) {
-            // Delete old image if it exists
             if ($event->image && Storage::disk('public')->exists($event->image)) {
                 Storage::disk('public')->delete($event->image);
             }
@@ -162,21 +160,18 @@ class EventController extends Controller
             $data['image'] = $imagePath;
         }
 
-        // Update organizer name if provided
         if ($request->has('organizer')) {
             $data['organizer'] = $request->organizer;
         }
 
         $event->update($data);
 
-        // Refresh the event data to include relationships
         $event = Event::with(['category', 'ticketTypes', 'organizer'])->find($id);
-        $event->image = asset('storage/Event/' . basename($event->image));
+        $event->image = asset('storage/' . $event->image);
 
         return response()->json($event);
     }
 
-    // DELETE /api/events/{id}
     public function destroy($id)
     {
         $event = Event::findOrFail($id);
@@ -226,7 +221,7 @@ class EventController extends Controller
                     'total_booked_tickets' => $totalBookedTickets,
                     'top_event' => $topEvent ? [
                         'id' => $topEvent->id,
-                        'name' => $topEvent->name,
+                        'name' => $topEvent->name ?? $topEvent->event_name,
                         'tickets_sold' => $topEvent->tickets_count ?? $topEvent->orders_count ?? 0,
                     ] : null
                 ]
