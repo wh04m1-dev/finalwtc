@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class OrderController extends Controller
 {
@@ -39,7 +40,7 @@ class OrderController extends Controller
                     'eventTime'      => $event ? $event->start_time . ' - ' . $event->end_time : null,
                     'eventLocation'  => $event->event_location ?? null,
                     'eventImage'     => $eventImageUrl,
-                    'qr_code'        => $order->qr_code,
+                    'qr_code'        => $order->qr_code ? $this->getFullImageUrl($order->qr_code) : null,
                     'is_scanned'     => (bool) $order->is_scanned,
                     'order_image'    => $order->image ? $this->getOrderImageUrl($order->image) : null,
                 ];
@@ -50,6 +51,49 @@ class OrderController extends Controller
             return response()->json([
                 'message' => 'Failed to retrieve orders',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function scan(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'qr_code' => 'required|string',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+    
+        try {
+            $qrData = json_decode($request->qr_code, true);
+    
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($qrData) || !isset($qrData['order_id'])) {
+                return response()->json(['errors' => ['qr_code' => ['The selected qr code is invalid.']]], 422);
+            }
+    
+            $order = Order::where('id', $qrData['order_id'])->first();
+    
+            if (!$order) {
+                return response()->json(['errors' => ['qr_code' => ['The selected qr code is invalid.']]], 422);
+            }
+    
+            if ($order->is_scanned) {
+                return response()->json([
+                    'message' => 'Ticket has already been scanned',
+                ], 400);
+            }
+    
+            $order->update(['is_scanned' => true]);
+    
+            return response()->json([
+                'message' => 'Ticket successfully scanned',
+                'order_id' => $order->id,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to scan ticket',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -65,7 +109,6 @@ class OrderController extends Controller
             'price_at_purchase' => 'required|numeric|min:0',
             'total_amount'      => 'required|numeric|min:0',
             'purchased_at'      => 'nullable|date',
-            'qr_code'           => 'nullable|string|unique:orders,qr_code',
             'is_scanned'        => 'boolean',
             'image'             => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -92,7 +135,30 @@ class OrderController extends Controller
                 $orderData['payment_status'] = 'Pending';
             }
 
+            // Generate QR code
+            $qrData = json_encode([
+                'order_id' => Str::random(10), // Temporary ID for QR generation
+                'ticket_type_id' => $request->ticket_type_id,
+                'event_id' => $ticketType->event->id,
+                'quantity' => $request->quantity,
+                'order_number' => 'ORD-' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT),
+            ]);
+            $qrCodeFilename = 'qr_codes/' . Str::random(20) . '.png';
+            QrCode::format('png')->size(300)->generate($qrData, storage_path('app/public/' . $qrCodeFilename));
+            $orderData['qr_code'] = $qrCodeFilename;
+
             $order = Order::create($orderData);
+
+            // Update QR code with actual order ID
+            $qrData = json_encode([
+                'order_id' => $order->id,
+                'ticket_type_id' => $request->ticket_type_id,
+                'event_id' => $ticketType->event->id,
+                'quantity' => $request->quantity,
+                'order_number' => 'ORD-' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
+            ]);
+            QrCode::format('png')->size(300)->generate($qrData, storage_path('app/public/' . $qrCodeFilename));
+            $order->update(['qr_code' => $qrCodeFilename]);
 
             // Handle file upload
             if ($request->hasFile('image')) {
@@ -109,6 +175,7 @@ class OrderController extends Controller
                 'message' => 'Order created successfully',
                 'order' => $order,
                 'order_image_url' => $order->image ? $this->getOrderImageUrl($order->image) : null,
+                'qr_code_url' => $this->getFullImageUrl($qrCodeFilename),
                 'event_details' => $event ? [
                     'title' => $event->event_name,
                     'date' => $event->event_date,
@@ -162,7 +229,7 @@ class OrderController extends Controller
                     'image' => $eventImageUrl,
                     'description' => $event->description ?? null,
                 ],
-                'qr_code' => $order->qr_code,
+                'qr_code' => $order->qr_code ? $this->getFullImageUrl($order->qr_code) : null,
                 'is_scanned' => (bool) $order->is_scanned,
                 'order_image' => $order->image ? $this->getOrderImageUrl($order->image) : null,
             ];
@@ -192,7 +259,6 @@ class OrderController extends Controller
                 'price_at_purchase' => 'numeric|min:0',
                 'total_amount'      => 'numeric|min:0',
                 'purchased_at'      => 'nullable|date',
-                'qr_code'           => 'nullable|string|unique:orders,qr_code,' . $id,
                 'is_scanned'        => 'boolean',
                 'image'             => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
@@ -217,7 +283,6 @@ class OrderController extends Controller
 
             // Handle file upload
             if ($request->hasFile('image')) {
-                // Delete old image if exists
                 if ($order->image) {
                     Storage::delete('public/Order/' . $order->image);
                 }
@@ -234,6 +299,7 @@ class OrderController extends Controller
                 'message' => 'Order updated successfully',
                 'order' => $updatedOrder,
                 'order_image_url' => $updatedOrder->image ? $this->getOrderImageUrl($updatedOrder->image) : null,
+                'qr_code_url' => $updatedOrder->qr_code ? $this->getFullImageUrl($updatedOrder->qr_code) : null,
                 'event_image' => $eventImageUrl
             ], 200);
         } catch (\Exception $e) {
@@ -253,9 +319,12 @@ class OrderController extends Controller
                 return response()->json(['message' => 'Order not found'], 404);
             }
 
-            // Delete associated image
+            // Delete associated image and QR code
             if ($order->image) {
                 Storage::delete('public/Order/' . $order->image);
+            }
+            if ($order->qr_code) {
+                Storage::delete('public/' . $order->qr_code);
             }
 
             $ticketType = TicketType::findOrFail($order->ticket_type_id);
@@ -300,7 +369,7 @@ class OrderController extends Controller
                         'date' => $event ? date('F j, Y', strtotime($event->event_date)) : null,
                         'image' => $eventImageUrl,
                     ],
-                    'qr_code' => $order->qr_code,
+                    'qr_code' => $order->qr_code ? $this->getFullImageUrl($order->qr_code) : null,
                     'order_image' => $order->image ? $this->getOrderImageUrl($order->image) : null,
                 ];
             });
@@ -324,7 +393,6 @@ class OrderController extends Controller
             return $path;
         }
 
-        // Remove any existing 'storage/' prefix if present
         $path = str_replace('storage/', '', $path);
         return asset('storage/' . $path);
     }

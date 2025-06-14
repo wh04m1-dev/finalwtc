@@ -29,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('events', EventController::class);
     Route::apiResource('ticket-types', TicketTypeController::class);
     Route::apiResource('orders', OrderController::class);
+    Route::post('scan', [OrderController::class, 'scan'])->name('orders.scan');
+
+
     Route::apiResource('discounts', DiscountController::class);
     Route::apiResource('payments', PaymentController::class);
 });
