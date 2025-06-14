@@ -27,6 +27,8 @@ return new class extends Migration {
                 ->onDelete('cascade');
             $table->integer('quantity');
             $table->decimal('price_at_purchase', 10, 2);
+            $table->string('image') // Added image column
+                ->nullable();
             $table->string('qr_code')
                 ->nullable();
             $table->boolean('is_scanned')
